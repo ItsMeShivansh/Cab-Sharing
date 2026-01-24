@@ -24,13 +24,18 @@ export async function GET(request: NextRequest) {
             name: true,
             email: true,
             phone: true,
-            trustScore: true,
           },
         },
         rideRequests: {
           select: {
             id: true,
             status: true,
+            passenger: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -41,16 +46,20 @@ export async function GET(request: NextRequest) {
       skip: offset,
     });
 
-    // Calculate available seats for each ride
+    // Calculate available seats for each ride and extract passengers
     const ridesWithAvailability = rides.map((ride) => {
       const acceptedRequests = ride.rideRequests.filter(
         (req) => req.status === 'ACCEPTED'
-      ).length;
-      const availableSeats = ride.maxPassengers - acceptedRequests;
+      );
+      const availableSeats = ride.maxPassengers - acceptedRequests.length;
+      
+      // Extract passenger details from accepted requests
+      const passengers = acceptedRequests.map((req) => req.passenger);
 
       return {
         ...ride,
         availableSeats,
+        passengers,
       };
     });
 

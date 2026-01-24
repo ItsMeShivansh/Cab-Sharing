@@ -227,24 +227,20 @@ export function CreateRideForm({ userId, onRideCreated }: CreateRideFormProps) {
                 {geocodingOrigin ? 'Finding...' : 'Find'}
               </Button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                type="number"
-                step="any"
-                placeholder="Latitude"
-                value={formData.originLat || ''}
-                onChange={(e) => setFormData({ ...formData, originLat: parseFloat(e.target.value) })}
-                required
-              />
-              <Input
-                type="number"
-                step="any"
-                placeholder="Longitude"
-                value={formData.originLng || ''}
-                onChange={(e) => setFormData({ ...formData, originLng: parseFloat(e.target.value) })}
-                required
-              />
-            </div>
+            {formData.originLat !== 0 && formData.originLng !== 0 && (
+              <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded flex items-center justify-between">
+                <span>📍 Coordinates: {formData.originLat.toFixed(6)}, {formData.originLng.toFixed(6)}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${formData.originLat},${formData.originLng}`, '_blank')}
+                  className="text-xs"
+                >
+                  Show on Maps
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -267,24 +263,20 @@ export function CreateRideForm({ userId, onRideCreated }: CreateRideFormProps) {
                 {geocodingDest ? 'Finding...' : 'Find'}
               </Button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                type="number"
-                step="any"
-                placeholder="Latitude"
-                value={formData.destLat || ''}
-                onChange={(e) => setFormData({ ...formData, destLat: parseFloat(e.target.value) })}
-                required
-              />
-              <Input
-                type="number"
-                step="any"
-                placeholder="Longitude"
-                value={formData.destLng || ''}
-                onChange={(e) => setFormData({ ...formData, destLng: parseFloat(e.target.value) })}
-                required
-              />
-            </div>
+            {formData.destLat !== 0 && formData.destLng !== 0 && (
+              <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded flex items-center justify-between">
+                <span>📍 Coordinates: {formData.destLat.toFixed(6)}, {formData.destLng.toFixed(6)}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${formData.destLat},${formData.destLng}`, '_blank')}
+                  className="text-xs"
+                >
+                  Show on Maps
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -312,14 +304,14 @@ export function CreateRideForm({ userId, onRideCreated }: CreateRideFormProps) {
           </div>
 
           <div className="flex items-center space-x-2">
-            <Switch
+            {/* <Switch
               id="ghostMode"
               checked={formData.ghostMode}
               onCheckedChange={(checked) => setFormData({ ...formData, ghostMode: checked })}
             />
             <Label htmlFor="ghostMode" className="cursor-pointer">
               Ghost Mode (Only visible to matching passengers)
-            </Label>
+            </Label> */}
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>

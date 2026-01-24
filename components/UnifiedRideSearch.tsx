@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RideCard } from '@/components/RideCard';
 import { useToast } from '@/components/ui/use-toast';
-import { MapPin, Search, Loader2, AlertCircle, Navigation, Clock, SlidersHorizontal, X } from 'lucide-react';
+import { MapPin, Search, Loader2, AlertCircle, Navigation, Clock, X } from 'lucide-react';
 import { isPointOnRoute } from '@/lib/polyline-utils';
 
 interface Driver {
@@ -15,7 +15,6 @@ interface Driver {
   name: string;
   email: string;
   phone: string | null;
-  trustScore: number;
 }
 
 interface Ride {
@@ -63,13 +62,6 @@ export function UnifiedRideSearch({ userId }: UnifiedRideSearchProps) {
   
   // Search mode
   const [searchMode, setSearchMode] = useState<SearchMode>('browse');
-  const [showFilters, setShowFilters] = useState(false);
-  
-  // Filter by single location (for browsing)
-  const [filterLocation, setFilterLocation] = useState('');
-  const [filterLat, setFilterLat] = useState('');
-  const [filterLng, setFilterLng] = useState('');
-  const [geocodingFilter, setGeocodingFilter] = useState(false);
   
   // Full search (pickup + dropoff)
   const [pickupAddress, setPickupAddress] = useState('');
@@ -122,22 +114,6 @@ export function UnifiedRideSearch({ userId }: UnifiedRideSearchProps) {
     }
   };
 
-  // Handle geocoding for filter location
-  const handleGeocodeFilter = async () => {
-    if (!filterLocation.trim()) return;
-    
-    setGeocodingFilter(true);
-    const coords = await geocodeAddress(filterLocation);
-    if (coords) {
-      setFilterLat(coords.lat.toString());
-      setFilterLng(coords.lng.toString());
-      toast({ title: 'Location found!', description: `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` });
-    } else {
-      toast({ title: 'Error', description: 'Could not find location', variant: 'destructive' });
-    }
-    setGeocodingFilter(false);
-  };
-
   // Handle geocoding for pickup
   const handleGeocodePickup = async () => {
     if (!pickupAddress.trim()) return;
@@ -168,32 +144,6 @@ export function UnifiedRideSearch({ userId }: UnifiedRideSearchProps) {
       toast({ title: 'Error', description: 'Could not find location', variant: 'destructive' });
     }
     setGeocodingDropoff(false);
-  };
-
-  // Filter rides by single location (browse mode)
-  const handleFilterByLocation = () => {
-    if (!filterLat || !filterLng) {
-      setError('Please find a location first');
-      return;
-    }
-
-    const lat = parseFloat(filterLat);
-    const lng = parseFloat(filterLng);
-
-    const matchingRides = allRides.filter((ride) => {
-      const result = isPointOnRoute({ lat, lng }, ride.routePolyline, thresholdMeters);
-      return result.isMatch;
-    });
-
-    setDisplayedRides(matchingRides);
-    setSearchMode('browse');
-
-    if (matchingRides.length === 0) {
-      setError(`No rides pass through "${filterLocation}". Try a different location.`);
-    } else {
-      setError('');
-      toast({ title: `Found ${matchingRides.length} ride(s) through this location` });
-    }
   };
 
   // Full search with pickup + dropoff (search mode)
@@ -246,9 +196,6 @@ export function UnifiedRideSearch({ userId }: UnifiedRideSearchProps) {
   // Clear all filters
   const handleClearFilters = () => {
     setDisplayedRides(allRides);
-    setFilterLocation('');
-    setFilterLat('');
-    setFilterLng('');
     setPickupAddress('');
     setPickupLat('');
     setPickupLng('');
@@ -262,12 +209,12 @@ export function UnifiedRideSearch({ userId }: UnifiedRideSearchProps) {
 
   // Handle booking request
   const handleBookRide = async (rideId: string) => {
-    const pLat = pickupLat || filterLat;
-    const pLng = pickupLng || filterLng;
-    const dLat = dropoffLat || filterLat;
-    const dLng = dropoffLng || filterLng;
-    const pAddr = pickupAddress || filterLocation || 'Pickup location';
-    const dAddr = dropoffAddress || filterLocation || 'Dropoff location';
+    const pLat = pickupLat;
+    const pLng = pickupLng;
+    const dLat = dropoffLat;
+    const dLng = dropoffLng;
+    const pAddr = pickupAddress || 'Pickup location';
+    const dAddr = dropoffAddress || 'Dropoff location';
 
     if (!pLat || !pLng) {
       toast({ title: 'Error', description: 'Please set your location first', variant: 'destructive' });
@@ -325,69 +272,17 @@ export function UnifiedRideSearch({ userId }: UnifiedRideSearchProps) {
       {/* Search/Filter Card */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                Find Your Ride
-              </CardTitle>
-              <CardDescription>
-                Browse all rides or search for specific routes
-              </CardDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <SlidersHorizontal className="h-4 w-4 mr-2" />
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
-            </Button>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Search: Pickup & Dropoff
+          </CardTitle>
+          <CardDescription>
+            Find rides matching your route
+          </CardDescription>
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {/* Quick Filter by Location */}
-          <div className="space-y-2">
-            <Label>Quick Filter: Find rides through a location</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  value={filterLocation}
-                  onChange={(e) => setFilterLocation(e.target.value)}
-                  placeholder="e.g., IIIT Hyderabad, Hitech City..."
-                  className="pl-10"
-                  onKeyDown={(e) => e.key === 'Enter' && handleGeocodeFilter()}
-                />
-              </div>
-              <Button
-                onClick={handleGeocodeFilter}
-                disabled={geocodingFilter || !filterLocation.trim()}
-                variant="outline"
-              >
-                {geocodingFilter ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Find'}
-              </Button>
-              <Button
-                onClick={handleFilterByLocation}
-                disabled={!filterLat || !filterLng}
-              >
-                Filter
-              </Button>
-            </div>
-            {filterLat && filterLng && (
-              <p className="text-xs text-green-600">
-                ✓ Location set: {parseFloat(filterLat).toFixed(4)}, {parseFloat(filterLng).toFixed(4)}
-              </p>
-            )}
-          </div>
-
-          {/* Advanced Search (collapsible) */}
-          {showFilters && (
-            <div className="border-t pt-4 space-y-4">
-              <h4 className="font-medium text-sm">Advanced Search: Pickup & Dropoff</h4>
-              
-              {/* Pickup Location */}
+          {/* Pickup Location */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-green-500" />
@@ -491,11 +386,9 @@ export function UnifiedRideSearch({ userId }: UnifiedRideSearchProps) {
                   </>
                 )}
               </Button>
-            </div>
-          )}
 
           {/* Clear Filters */}
-          {(filterLat || pickupLat || searchMode === 'search') && (
+          {(pickupLat || searchMode === 'search') && (
             <Button onClick={handleClearFilters} variant="ghost" size="sm" className="w-full">
               <X className="h-4 w-4 mr-2" />
               Clear All Filters & Show All Rides
@@ -518,9 +411,7 @@ export function UnifiedRideSearch({ userId }: UnifiedRideSearchProps) {
           <h2 className="text-lg font-semibold">
             {searchMode === 'search' 
               ? `Matching Rides (${displayedRides.length})`
-              : filterLat 
-                ? `Rides through ${filterLocation} (${displayedRides.length})`
-                : `All Available Rides (${displayedRides.length})`
+              : `All Available Rides (${displayedRides.length})`
             }
           </h2>
           <Button onClick={fetchAllRides} variant="ghost" size="sm">
@@ -559,7 +450,7 @@ export function UnifiedRideSearch({ userId }: UnifiedRideSearchProps) {
               return (
                 <div key={ride.id} className="relative">
                   <RideCard ride={rideCardData} showDriverInfo />
-                  {(filterLat || pickupLat) && (
+                  {pickupLat && (
                     <Button
                       onClick={() => handleBookRide(ride.id)}
                       className="mt-2 w-full"

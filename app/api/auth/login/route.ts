@@ -15,7 +15,6 @@ interface UserWithPassword {
   email: string;
   name: string;
   password: string;
-  trustScore: number;
 }
 
 export async function POST(req: NextRequest) {
@@ -25,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     // Find user with password using raw query
     const users = await prisma.$queryRaw<UserWithPassword[]>`
-      SELECT id, email, name, password, trust_score as "trustScore"
+      SELECT id, email, name, password
       FROM users 
       WHERE email = ${email}
       LIMIT 1
@@ -63,7 +62,6 @@ export async function POST(req: NextRequest) {
         id: user.id,
         name: user.name,
         email: user.email,
-        trustScore: user.trustScore,
       },
     });
 

@@ -31,7 +31,6 @@ interface Driver {
   name: string;
   email: string;
   phone: string | null;
-  trustScore: number;
 }
 
 interface Ride {
@@ -65,6 +64,7 @@ export function MyRequests({ userId }: MyRequestsProps) {
   const [requests, setRequests] = useState<RideRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cancellingRequests, setCancellingRequests] = useState<Set<string>>(new Set());
 
   const fetchMyRequests = useCallback(async () => {
     try {
@@ -88,6 +88,41 @@ export function MyRequests({ userId }: MyRequestsProps) {
   useEffect(() => {
     fetchMyRequests();
   }, [fetchMyRequests]);
+
+  const handleCancelRequest = async (requestId: string, wasAccepted: boolean) => {
+    if (!confirm(wasAccepted 
+      ? 'Are you sure you want to cancel this confirmed ride? The driver will be notified.' 
+      : 'Are you sure you want to cancel this ride request?')) {
+      return;
+    }
+
+    setCancellingRequests((prev) => new Set(prev).add(requestId));
+    try {
+      const response = await fetch('/api/requests/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, passengerId: userId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to cancel request');
+      }
+
+      // Refresh requests
+      await fetchMyRequests();
+      alert(data.message);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to cancel request');
+    } finally {
+      setCancellingRequests((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(requestId);
+        return newSet;
+      });
+    }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -123,6 +158,13 @@ export function MyRequests({ userId }: MyRequestsProps) {
           <Badge className="bg-red-100 text-red-800 border-red-300">
             <XCircle className="mr-1 h-3 w-3" />
             Rejected
+          </Badge>
+        );
+      case 'CANCELLED':
+        return (
+          <Badge className="bg-gray-100 text-gray-800 border-gray-300">
+            <XCircle className="mr-1 h-3 w-3" />
+            Cancelled
           </Badge>
         );
       default:
@@ -167,6 +209,7 @@ export function MyRequests({ userId }: MyRequestsProps) {
   const pendingRequests = requests.filter((r) => r.status === 'PENDING');
   const acceptedRequests = requests.filter((r) => r.status === 'ACCEPTED');
   const rejectedRequests = requests.filter((r) => r.status === 'REJECTED');
+  const cancelledRequests = requests.filter((r) => r.status === 'CANCELLED');
 
   return (
     <div className="space-y-6">
@@ -210,6 +253,8 @@ export function MyRequests({ userId }: MyRequestsProps) {
               key={request.id}
               request={request}
               getStatusBadge={getStatusBadge}
+              onCancel={handleCancelRequest}
+              isCancelling={cancellingRequests.has(request.id)}
             />
           ))}
         </div>
@@ -227,6 +272,8 @@ export function MyRequests({ userId }: MyRequestsProps) {
               key={request.id}
               request={request}
               getStatusBadge={getStatusBadge}
+              onCancel={handleCancelRequest}
+              isCancelling={cancellingRequests.has(request.id)}
             />
           ))}
         </div>
@@ -255,10 +302,13 @@ export function MyRequests({ userId }: MyRequestsProps) {
 interface RequestCardProps {
   request: RideRequest;
   getStatusBadge: (status: string) => React.ReactNode;
+  onCancel?: (requestId: string, wasAccepted: boolean) => void;
+  isCancelling?: boolean;
 }
 
-function RequestCard({ request, getStatusBadge }: RequestCardProps) {
+function RequestCard({ request, getStatusBadge, onCancel, isCancelling }: RequestCardProps) {
   const isUpcoming = new Date(request.ride.departureTime) >= new Date();
+  const canCancel = isUpcoming && (request.status === 'PENDING' || request.status === 'ACCEPTED');
 
   return (
     <Card className={`${!isUpcoming ? 'opacity-75' : ''}`}>
@@ -306,9 +356,6 @@ function RequestCard({ request, getStatusBadge }: RequestCardProps) {
           <div className="flex items-center gap-2 mb-2">
             <User className="h-4 w-4 text-gray-600" />
             <span className="font-medium">{request.ride.driver.name}</span>
-            <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
-              Trust: {request.ride.driver.trustScore}
-            </span>
           </div>
 
           {/* Contact Info (only for accepted requests) */}
@@ -347,10 +394,42 @@ function RequestCard({ request, getStatusBadge }: RequestCardProps) {
               ❌ Your request was declined. Try finding another ride.
             </div>
           )}
+
+          {/* Cancelled Message */}
+          {request.status === 'CANCELLED' && (
+            <div className="mt-2 p-2 rounded bg-gray-100 text-gray-800 text-xs">
+              🚫 You cancelled this request.
+            </div>
+          )}
         </div>
 
+        {/* Cancel Button */}
+        {canCancel && onCancel && (
+          <div className="mt-3 pt-3 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onCancel(request.id, request.status === 'ACCEPTED')}
+              disabled={isCancelling}
+              className="w-full text-red-600 border-red-300 hover:bg-red-50"
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  {request.status === 'ACCEPTED' ? 'Cancel Confirmed Ride' : 'Cancel Request'}
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
         {/* Request Time */}
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-gray-400 mt-3">
           Requested {format(new Date(request.createdAt), 'MMM d, yyyy h:mm a')}
         </div>
       </CardContent>

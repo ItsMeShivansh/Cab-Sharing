@@ -7,7 +7,6 @@ interface User {
   name: string;
   email: string;
   phone?: string | null;
-  trustScore: number;
 }
 
 interface AuthContextType {

@@ -34,7 +34,6 @@ export async function GET(req: NextRequest) {
         name: true,
         email: true,
         phone: true,
-        trustScore: true,
       },
     });
 

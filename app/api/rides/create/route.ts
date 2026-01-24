@@ -78,7 +78,6 @@ export async function POST(req: NextRequest) {
             id: true,
             name: true,
             email: true,
-            trustScore: true,
           },
         },
       },
@@ -134,7 +133,6 @@ export async function GET(req: NextRequest) {
             id: true,
             name: true,
             email: true,
-            trustScore: true,
           },
         },
         rideRequests: {
@@ -145,7 +143,6 @@ export async function GET(req: NextRequest) {
                 name: true,
                 email: true,
                 phone: true,
-                trustScore: true,
               },
             },
           },

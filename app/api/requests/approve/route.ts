@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
             name: true,
             email: true,
             phone: true,
-            trustScore: true,
+
           },
         },
       },
@@ -81,7 +81,6 @@ export async function POST(request: NextRequest) {
             name: true,
             email: true,
             phone: true,
-            trustScore: true,
           },
         },
         ride: {
@@ -92,7 +91,6 @@ export async function POST(request: NextRequest) {
                 name: true,
                 email: true,
                 phone: true,
-                trustScore: true,
               },
             },
           },

@@ -43,6 +43,7 @@ model Ride {
   status          String      @default("OPEN") // OPEN | FULL | COMPLETED | CANCELLED
   maxPassengers   Int         @default(3) @map("max_passengers")
   ghostMode       Boolean     @default(false) @map("ghost_mode")
+  totalCost       Float?      @map("total_cost") // Total cost entered by driver after completion
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
@@ -56,18 +57,23 @@ model Ride {
 }
 
 model RideRequest {
-  id            String         @id @default(cuid())
-  passengerId   String         @map("passenger_id")
-  rideId        String         @map("ride_id")
-  pickupLat     Float          @map("pickup_lat")
-  pickupLng     Float          @map("pickup_lng")
-  pickupAddress String         @map("pickup_address")
-  dropoffLat    Float          @map("dropoff_lat")
-  dropoffLng    Float          @map("dropoff_lng")
-  dropoffAddress String        @map("dropoff_address")
-  status        String         @default("PENDING") // PENDING | ACCEPTED | REJECTED
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
+  id              String         @id @default(cuid())
+  passengerId     String         @map("passenger_id")
+  rideId          String         @map("ride_id")
+  pickupLat       Float          @map("pickup_lat")
+  pickupLng       Float          @map("pickup_lng")
+  pickupAddress   String         @map("pickup_address")
+  dropoffLat      Float          @map("dropoff_lat")
+  dropoffLng      Float          @map("dropoff_lng")
+  dropoffAddress  String         @map("dropoff_address")
+  status          String         @default("PENDING") // PENDING | ACCEPTED | REJECTED | CANCELLED
+  pickupPosition  Float?         @map("pickup_position") // Position along route (0-1)
+  dropoffPosition Float?         @map("dropoff_position") // Position along route (0-1)
+  distanceKm      Float?         @map("distance_km") // Distance traveled by this passenger
+  amountOwed      Float?         @map("amount_owed") // Amount this passenger owes
+  paymentStatus   String         @default("NONE") @map("payment_status") // NONE | PENDING | PAID | CONFIRMED
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
 
   // Relations
   passenger     User           @relation(fields: [passengerId], references: [id], onDelete: Cascade)

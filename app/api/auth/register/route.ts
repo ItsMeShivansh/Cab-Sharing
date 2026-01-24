@@ -58,7 +58,6 @@ export async function POST(req: NextRequest) {
         id: userId,
         name,
         email,
-        trustScore: 100,
       },
     });
 

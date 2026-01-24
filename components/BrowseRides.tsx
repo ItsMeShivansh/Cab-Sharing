@@ -14,7 +14,6 @@ interface Driver {
   name: string;
   email: string;
   phone: string | null;
-  trustScore: number;
 }
 
 interface Ride {

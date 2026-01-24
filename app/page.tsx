@@ -94,9 +94,6 @@ export default function HomePage() {
             <div className="flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2">
               <User className="h-4 w-4 text-blue-600" />
               <span className="text-sm font-medium text-blue-900">{user.name}</span>
-              <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
-                Score: {user.trustScore}
-              </span>
             </div>
             <Button variant="ghost" size="sm" onClick={logout}>
               <LogOut className="h-4 w-4 mr-2" />

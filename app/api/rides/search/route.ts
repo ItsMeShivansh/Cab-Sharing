@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { isPointOnRoute, estimateTimeToPoint } from '@/lib/polyline-utils';
+import { isPointOnRoute, estimateTimeToPoint, getPositionAlongRoute } from '@/lib/polyline-utils';
 import { z } from 'zod';
 
 const searchRidesSchema = z.object({
@@ -60,7 +60,6 @@ export async function POST(req: NextRequest) {
             id: true,
             name: true,
             email: true,
-            trustScore: true,
             phone: true,
           },
         },
@@ -91,6 +90,16 @@ export async function POST(req: NextRequest) {
 
         // Both pickup and dropoff must be on the route
         if (pickupMatch.isMatch && dropoffMatch.isMatch) {
+          // CRITICAL: Check that pickup comes BEFORE dropoff in route direction
+          // This prevents matching rides going in the opposite direction
+          const pickupPosition = getPositionAlongRoute(pickupPoint, ride.routePolyline);
+          const dropoffPosition = getPositionAlongRoute(dropoffPoint, ride.routePolyline);
+          
+          // If pickup is after dropoff, the ride is going the wrong direction
+          if (pickupPosition >= dropoffPosition) {
+            return null; // Reject this ride - wrong direction
+          }
+
           // Calculate estimated pickup time based on position along route
           const timeToPickup = estimateTimeToPoint(
             pickupPoint,

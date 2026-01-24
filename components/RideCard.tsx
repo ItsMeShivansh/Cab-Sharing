@@ -17,8 +17,12 @@ interface Driver {
   id: string;
   name: string;
   email: string;
-  trustScore: number;
   phone?: string | null;
+}
+
+interface Passenger {
+  id: string;
+  name: string;
 }
 
 interface RideCardProps {
@@ -26,11 +30,17 @@ interface RideCardProps {
     id: string;
     originAddress: string;
     destAddress: string;
+    originLat?: number;
+    originLng?: number;
+    destLat?: number;
+    destLng?: number;
     departureTime: Date | string;
     maxPassengers: number;
     ghostMode: boolean;
     status: string;
     driver: Driver;
+    availableSeats?: number;
+    passengers?: Passenger[];
     matchDetails?: MatchDetails;
   };
   onRequestRide?: (rideId: string) => void;
@@ -43,7 +53,9 @@ export function RideCard({ ride, onRequestRide, showDriverInfo = false, isOwnRid
     ? new Date(ride.departureTime) 
     : ride.departureTime;
 
-  const availableSeats = ride.matchDetails?.availableSeats ?? ride.maxPassengers;
+  // Use availableSeats from ride object first, then matchDetails, then fallback to maxPassengers
+  const availableSeats = ride.availableSeats ?? ride.matchDetails?.availableSeats ?? ride.maxPassengers;
+  const filledSeats = ride.maxPassengers - availableSeats;
 
   return (
     <Card className="w-full hover:shadow-lg transition-shadow">
@@ -77,9 +89,25 @@ export function RideCard({ ride, onRequestRide, showDriverInfo = false, isOwnRid
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Users className="h-4 w-4" />
           <span>
-            {availableSeats} {availableSeats === 1 ? 'seat' : 'seats'} available
+            {filledSeats}/{ride.maxPassengers} seats filled ({availableSeats} available)
           </span>
         </div>
+
+        {/* Show passengers who have booked this ride */}
+        {ride.passengers && ride.passengers.length > 0 && (
+          <div className="mt-2 p-3 bg-green-50 rounded-md">
+            <div className="text-sm font-medium text-green-800 mb-2">
+              Passengers ({ride.passengers.length}):
+            </div>
+            <div className="space-y-1">
+              {ride.passengers.map((passenger) => (
+                <div key={passenger.id} className="text-sm text-green-700">
+                  {passenger.name}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {ride.matchDetails && (
           <div className="mt-3 p-3 bg-blue-50 rounded-md space-y-1">
@@ -107,7 +135,7 @@ export function RideCard({ ride, onRequestRide, showDriverInfo = false, isOwnRid
 
         {showDriverInfo && (
           <div className="mt-3 p-3 bg-gray-50 rounded-md">
-            <div className="text-sm font-medium">Driver</div>
+            <div className="text-sm font-medium">Host</div>
             <div className="text-sm text-muted-foreground">{ride.driver.name}</div>
             <div className="text-xs text-muted-foreground">{ride.driver.email}</div>
             {ride.driver.phone && (
@@ -115,21 +143,23 @@ export function RideCard({ ride, onRequestRide, showDriverInfo = false, isOwnRid
                 Phone: {ride.driver.phone}
               </div>
             )}
-            <div className="flex items-center gap-1 mt-2">
-              <span className="text-xs font-medium">Trust Score:</span>
-              <span className={`text-xs font-bold ${
-                ride.driver.trustScore >= 80 ? 'text-green-600' : 
-                ride.driver.trustScore >= 60 ? 'text-yellow-600' : 
-                'text-red-600'
-              }`}>
-                {ride.driver.trustScore}/100
-              </span>
-            </div>
           </div>
         )}
       </CardContent>
 
-      <CardFooter>
+      <CardFooter className="flex-col gap-2">
+        {ride.originLat && ride.originLng && ride.destLat && ride.destLng && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&origin=${ride.originLat},${ride.originLng}&destination=${ride.destLat},${ride.destLng}`, '_blank')}
+            className="w-full"
+          >
+            <MapPin className="h-4 w-4 mr-2" />
+            View Route on Google Maps
+          </Button>
+        )}
+        
         {!isOwnRide && onRequestRide && ride.status === 'OPEN' && availableSeats > 0 && (
           <Button 
             onClick={() => onRequestRide(ride.id)} 

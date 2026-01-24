@@ -16,10 +16,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all rides created by this user
+    // Get all rides created by this user (future, in-progress, OR recently completed)
     const rides = await prisma.ride.findMany({
       where: {
         driverId: userId,
+        status: {
+          in: ['OPEN', 'FULL', 'COMPLETED'], // Exclude only CANCELLED
+        },
       },
       include: {
         rideRequests: {
@@ -30,7 +33,6 @@ export async function GET(request: NextRequest) {
                 name: true,
                 email: true,
                 phone: true,
-                trustScore: true,
               },
             },
           },
