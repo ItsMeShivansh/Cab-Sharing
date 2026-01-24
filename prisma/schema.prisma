@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  phone       String?
+  password    String   @default("") // Hashed password
+  trustScore  Int      @default(100) @map("trust_score")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  ridesAsDriver    Ride[]         @relation("DriverRides")
+  rideRequests     RideRequest[]
+
+  @@map("users")
+}
+
+model Ride {
+  id              String      @id @default(cuid())
+  driverId        String      @map("driver_id")
+  originLat       Float       @map("origin_lat")
+  originLng       Float       @map("origin_lng")
+  originAddress   String      @map("origin_address")
+  destLat         Float       @map("dest_lat")
+  destLng         Float       @map("dest_lng")
+  destAddress     String      @map("dest_address")
+  departureTime   DateTime    @map("departure_time")
+  routePolyline   String      @map("route_polyline")
+  routeDuration   Int         @default(0) @map("route_duration") // Total route duration in seconds
+  routeDistance   Int         @default(0) @map("route_distance") // Total route distance in meters
+  status          String      @default("OPEN") // OPEN | FULL | COMPLETED | CANCELLED
+  maxPassengers   Int         @default(3) @map("max_passengers")
+  ghostMode       Boolean     @default(false) @map("ghost_mode")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  driver          User           @relation("DriverRides", fields: [driverId], references: [id], onDelete: Cascade)
+  rideRequests    RideRequest[]
+
+  @@index([status])
+  @@index([departureTime])
+  @@map("rides")
+}
+
+model RideRequest {
+  id            String         @id @default(cuid())
+  passengerId   String         @map("passenger_id")
+  rideId        String         @map("ride_id")
+  pickupLat     Float          @map("pickup_lat")
+  pickupLng     Float          @map("pickup_lng")
+  pickupAddress String         @map("pickup_address")
+  dropoffLat    Float          @map("dropoff_lat")
+  dropoffLng    Float          @map("dropoff_lng")
+  dropoffAddress String        @map("dropoff_address")
+  status        String         @default("PENDING") // PENDING | ACCEPTED | REJECTED
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  passenger     User           @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+  ride          Ride           @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  @@index([rideId])
+  @@index([passengerId])
+  @@index([status])
+  @@map("ride_requests")
+}
